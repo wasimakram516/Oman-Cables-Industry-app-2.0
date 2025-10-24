@@ -11,10 +11,12 @@ const s3 = new S3Client({
 
 export async function GET(_, { params }) {
   try {
-    const key = decodeURIComponent(params.key);
+    const { key: paramKey } = await params;
+    const key = decodeURIComponent(paramKey);
+    const fullKey = `subtitles/${key}`;
     const command = new GetObjectCommand({
       Bucket: process.env.S3_BUCKET,
-      Key: `subtitles/${key}`,
+      Key: fullKey,
     });
     const data = await s3.send(command);
     const body = await data.Body.transformToByteArray();

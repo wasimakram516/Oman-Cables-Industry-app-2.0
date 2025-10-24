@@ -659,7 +659,7 @@ export default function HomePage() {
             src="/OCI QR.png"
             alt="OCI QR Code"
             style={{
-              width: "96vw",
+              width: "100vw",
               objectFit: "contain",
               borderRadius: 10,
               filter: "drop-shadow(0px 4px 8px rgba(0,0,0,0.6))",

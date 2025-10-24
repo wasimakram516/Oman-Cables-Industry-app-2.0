@@ -649,7 +649,7 @@ export default function HomePage() {
         <Box
           sx={{
             position: "absolute",
-            bottom: 0,
+            bottom:"13vh",
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 50,
@@ -659,10 +659,11 @@ export default function HomePage() {
             src="/OCI QR.png"
             alt="OCI QR Code"
             style={{
-              width: "25vw",
+              width: "96vw",
               objectFit: "contain",
               borderRadius: 10,
               filter: "drop-shadow(0px 4px 8px rgba(0,0,0,0.6))",
+              maxHeight:"11vh"
             }}
           />
         </Box>
@@ -713,22 +714,23 @@ export default function HomePage() {
                   top: `${node.y}%`,
                   left: `${node.x}%`,
                   width: currentNode
-                    ? "clamp(6rem, 25vw, 20rem)" // child style
-                    : "clamp(8rem, 25vw, 28rem)", // parent style
+                    ? "clamp(6rem, 25vw, 16rem)"
+                    : "clamp(8rem, 25vw, 16rem)",
                   height: currentNode
-                    ? "clamp(6rem, 10vw, 20rem)"
-                    : "clamp(8rem, 10vw, 28rem)",
-                  borderRadius: "20px",
+                    ? "clamp(6rem, 25vw, 16rem)"
+                    : "clamp(8rem, 25vw, 16rem)",
+                  borderRadius: "50%",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexDirection: "column",
                   fontSize: currentNode
-                    ? "clamp(0.8rem, 2.5vw, 2rem)"
-                    : "clamp(1rem, 3vw, 3rem)",
+                    ? "clamp(0.8rem, 3vw, 2rem)"
+                    : "clamp(0.9rem, 3vw, 1.8rem)",
                   textTransform: "capitalize",
                   textAlign: "center",
                   padding: "0.5rem",
+                  lineHeight: 1.2,
                   animation: `floatY 6s ease-in-out infinite`,
                   animationDelay: `${idx * 0.3}s`,
                   transition: "all 0.4s ease",

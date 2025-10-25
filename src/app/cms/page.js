@@ -29,6 +29,7 @@ import CMSForm from "@/components/CMSForm";
 import HomeVideoModal from "@/components/HomeVideoModal";
 import FullPageLoader from "@/components/FullPageLoader";
 import VVIPForm from "@/components/VVIPForm";
+import QRForm from "@/components/QRForm";
 
 export default function CMSPage() {
   const [tree, setTree] = useState([]);
@@ -47,7 +48,9 @@ export default function CMSPage() {
   const [vvips, setVvips] = useState([]);
   const [openVvipModal, setOpenVvipModal] = useState(false);
   const [editVvip, setEditVvip] = useState(null);
-
+  // qr state
+  const [qrCode, setQrCode] = useState(null);
+  const [openQrModal, setOpenQrModal] = useState(false);
   // delete state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [nodeToDelete, setNodeToDelete] = useState(null);
@@ -91,17 +94,30 @@ export default function CMSPage() {
     }
   };
 
+  const fetchQR = async () => {
+    try {
+      const res = await fetch("/api/qr");
+      if (!res.ok) throw new Error(res.statusText);
+      return await res.json();
+    } catch (err) {
+      console.error("❌ fetchQR error:", err);
+      return null;
+    }
+  };
+
   const refreshAll = async () => {
     setLoading(true);
     try {
-      const [treeData, homeData, vvipsData] = await Promise.all([
+      const [treeData, homeData, vvipsData, qrData] = await Promise.all([
         fetchTree(),
         fetchHomeVideo(),
         fetchVvips(),
+        fetchQR(),
       ]);
       setTree(treeData || []);
       setHomeVideo(homeData || null);
       setVvips(vvipsData || []);
+      setQrCode(qrData || null);
     } finally {
       setLoading(false);
     }
@@ -188,6 +204,14 @@ export default function CMSPage() {
           }}
         >
           Add VVIP
+        </Button>
+        <Button
+          variant="contained"
+          color="success"
+          startIcon={<AddIcon />}
+          onClick={() => setOpenQrModal(true)}
+        >
+          {qrCode ? "Edit QR Code" : "Add QR Code"}
         </Button>
         <Button
           variant="outlined"
@@ -394,6 +418,26 @@ export default function CMSPage() {
               onClose={() => setOpenVvipModal(false)}
               onCreated={refreshAll}
               initialData={editVvip}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {openQrModal && (
+        <Dialog
+          open={openQrModal}
+          onClose={() => setOpenQrModal(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            {qrCode ? "Edit QR Code" : "Add QR Code"}
+          </DialogTitle>
+          <DialogContent dividers>
+            <QRForm
+              onClose={() => setOpenQrModal(false)}
+              onCreated={refreshAll}
+              initialData={qrCode}
             />
           </DialogContent>
         </Dialog>

@@ -8,8 +8,8 @@ import {
   Dialog,
   DialogContent,
   IconButton,
-  Avatar,
   Stack,
+  Slider,
 } from "@mui/material";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
@@ -18,7 +18,6 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import FullPageLoader from "@/components/FullPageLoader";
 import { motion, AnimatePresence } from "framer-motion";
-import SpeakerCard from "@/components/SpeakerCard";
 
 // Slide animations
 const slideVariants = {
@@ -44,29 +43,25 @@ const slideVariants = {
 };
 
 export default function HomePage() {
+  const videoRef = useRef(null);
+  const inactivityTimer = useRef(null);
+  const actionTimer = useRef(null);
+  const buttonSoundRef = useRef(null);
   const [home, setHome] = useState(null);
   const [tree, setTree] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentVideo, setCurrentVideo] = useState(null);
   const [currentNode, setCurrentNode] = useState(null);
   const [openAction, setOpenAction] = useState(false);
-  const videoRef = useRef(null);
-  const inactivityTimer = useRef(null);
   const [homeVideoKey, setHomeVideoKey] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [videoLoading, setVideoLoading] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
   const [direction, setDirection] = useState("next");
-
-  // agenda state
-  const [agendaActive, setAgendaActive] = useState(null);
-  const [agendaDoc, setAgendaDoc] = useState(null);
-  const [allSpeakers, setAllSpeakers] = useState([]);
-  const [selectedSpeaker, setSelectedSpeaker] = useState(null);
   const [vvip, setVvip] = useState(null);
-  const marqueeRef = useRef(null);
-  const actionTimer = useRef(null);
-  const buttonSoundRef = useRef(null);
+
+  const [sliderValue, setSliderValue] = useState(0);
+  const [openNumberModal, setOpenNumberModal] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -74,7 +69,7 @@ export default function HomePage() {
     };
   }, []);
 
-  // 1. fetch home + tree
+  // fetch home + tree
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -96,74 +91,7 @@ export default function HomePage() {
     fetchData();
   }, []);
 
-  // 2. fetch agenda (active + full)
-  useEffect(() => {
-    const fetchAgendaStuff = async () => {
-      const [activeRes, listRes] = await Promise.all([
-        fetch("/api/agenda/active"),
-        fetch("/api/agenda"),
-      ]);
-      const active = await activeRes.json();
-      const list = await listRes.json();
-      const doc = list?.[0] || null;
-
-      setAgendaActive(active); // { activeItem, nextItem } (time-based)
-      setAgendaDoc(doc);
-
-      // flat speakers list from new schema
-      setAllSpeakers(doc?.items || []);
-    };
-
-    fetchAgendaStuff();
-    const interval = setInterval(fetchAgendaStuff, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // derive agenda (prefer manual toggle, fallback to time-based)
-  const explicitActive =
-    (agendaDoc?.items || []).find((it) => it.isActive) || null;
-
-  const activeSpeaker = explicitActive || agendaActive?.activeItem || null;
-
-  const nextSpeaker = agendaActive?.nextItem || null;
-
-  // build marquee list (exclude the active one)
-  const orderedSpeakers = (allSpeakers || []).filter(
-    (spk) => !(activeSpeaker && spk._id === activeSpeaker._id)
-  );
-
-  // 3. marquee scroll effect
-  useEffect(() => {
-    const el = marqueeRef.current;
-    if (!el || orderedSpeakers.length === 0) return;
-
-    // Wrap content twice → endless loop illusion
-    const wrapper = el.parentElement;
-    const clone = el.cloneNode(true);
-    clone.style.marginLeft = "30px"; // small gap
-    wrapper.appendChild(clone);
-
-    const totalWidth = el.scrollWidth + clone.scrollWidth + 30;
-    const duration = totalWidth * 30; // msPerPx
-
-    wrapper.animate(
-      [
-        { transform: "translateX(0)" },
-        { transform: `translateX(-${el.scrollWidth + 30}px)` },
-      ],
-      {
-        duration,
-        iterations: Infinity,
-        easing: "linear",
-      }
-    );
-
-    return () => {
-      wrapper.removeChild(clone);
-    };
-  }, [orderedSpeakers.length]);
-
-  // 4. inactivity timer
+  // inactivity timer
   useEffect(() => {
     const events = ["mousemove", "mousedown", "click", "keydown", "touchstart"];
     const resetTimer = () => startInactivityTimer();
@@ -231,7 +159,6 @@ export default function HomePage() {
   if (loading) return <FullPageLoader />;
 
   const topNodes = Array.isArray(tree) ? tree : [];
-  const currentChildren = currentNode?.children || [];
 
   const playClickSound = () => {
     if (buttonSoundRef.current) {
@@ -254,7 +181,7 @@ export default function HomePage() {
   function findParentNode(tree, childId) {
     for (const node of tree) {
       if (node.children?.some((c) => c._id === childId)) {
-        return node; // found parent
+        return node;
       }
       const deeper = findParentNode(node.children || [], childId);
       if (deeper) return deeper;
@@ -263,21 +190,6 @@ export default function HomePage() {
   }
 
   const renderActionContent = () => {
-    if (selectedSpeaker) {
-      if (selectedSpeaker.infoImageUrl) {
-        return (
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <img
-              src={selectedSpeaker.infoImageUrl}
-              alt={`${selectedSpeaker.name}-info`}
-              style={{ maxWidth: "100%", maxHeight: "100%", borderRadius: 8 }}
-            />
-          </Box>
-        );
-      }
-      return <Typography>No info image for this speaker</Typography>;
-    }
-
     if (!currentNode?.action) return null;
     const { type, s3Url, externalUrl, images = [] } = currentNode.action;
     const url = s3Url || externalUrl;
@@ -500,10 +412,10 @@ export default function HomePage() {
         </IconButton>
       )}
 
-      {/* Top 80% */}
+      {/* Top 90% */}
       <Box
         sx={{
-          flex: 8,
+          flex: 9,
           position: "relative",
           bgcolor: "white",
           overflow: "hidden",
@@ -563,7 +475,6 @@ export default function HomePage() {
                   if (actionTimer.current) clearTimeout(actionTimer.current);
 
                   if (currentNode?.action) {
-                    setSelectedSpeaker(null);
                     const nodeForAction = currentNode;
                     actionTimer.current = setTimeout(() => {
                       setOpenAction(true);
@@ -649,7 +560,7 @@ export default function HomePage() {
         <Box
           sx={{
             position: "absolute",
-            bottom:"13vh",
+            bottom: "8vh",
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 50,
@@ -660,10 +571,10 @@ export default function HomePage() {
             alt="OCI QR Code"
             style={{
               width: "100vw",
-              objectFit: "contain",
+              objectFit: "cover",
               borderRadius: 10,
               filter: "drop-shadow(0px 4px 8px rgba(0,0,0,0.6))",
-              maxHeight:"11vh"
+              maxHeight: "10vh",
             }}
           />
         </Box>
@@ -777,7 +688,7 @@ export default function HomePage() {
       {/* Bottom 20% Speakers */}
       <Box
         sx={{
-          flex: 2,
+          flex: 1,
           display: "flex",
           alignItems: "center",
           px: 2,
@@ -813,153 +724,117 @@ export default function HomePage() {
           }}
         />
 
-        {/* Active Speaker */}
-        {activeSpeaker && (
-          <Stack
-            onClick={() => {
-              playClickSound();
-              setSelectedSpeaker(activeSpeaker);
-              setOpenAction(true);
-            }}
-            alignItems="center"
-            justifyContent="center"
-            spacing={1}
-            sx={{
-              minWidth: { xs: "32%", sm: "24%", md: "20%" },
-              height: "85%",
-              px: 2,
-              py: 2,
-              mr: 3,
-              borderRadius: 3,
-              bgcolor:
-                "linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))",
-              backdropFilter: "blur(16px)",
-              border: "3px solid #4caf50",
-              boxShadow: "0 0 25px rgba(76, 175, 80, 0.6)",
-              animation: "pulseGlow 2s infinite",
-              position: "relative",
-              zIndex: 1,
-              cursor: "pointer",
-              transition: "all 0.3s ease",
-              "&:hover": {
-                transform: "scale(1.05)",
-                boxShadow: "0 0 35px rgba(76, 175, 80, 0.9)",
-              },
-              "@keyframes pulseGlow": {
-                "0%": { boxShadow: "0 0 15px rgba(76, 175, 80, 0.5)" },
-                "50%": { boxShadow: "0 0 30px rgba(76, 175, 80, 0.9)" },
-                "100%": { boxShadow: "0 0 15px rgba(76, 175, 80, 0.5)" },
-              },
-            }}
-          >
-            {/* LIVE badge */}
-            <Box
-              sx={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                bgcolor: "#e53935",
-                color: "white",
-                fontSize: "0.7rem",
-                fontWeight: "bold",
-                px: 1.4,
-                py: 0.4,
-                borderRadius: "99px",
-                zIndex: 2,
-                boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                letterSpacing: "0.5px",
-              }}
-            >
-              LIVE
-            </Box>
-
-            <Avatar
-              src={activeSpeaker.photoUrl || ""}
-              alt={activeSpeaker.name}
-              sx={{
-                width: "12vh",
-                height: "12vh",
-                border: "3px solid #4caf50",
-                boxShadow: "0 0 15px rgba(76, 175, 80, 0.5)",
-                animation: "pulseGlow 2s infinite",
-                "@keyframes pulseGlow": {
-                  "0%": { boxShadow: "0 0 15px rgba(76, 175, 80, 0.5)" },
-                  "50%": { boxShadow: "0 0 30px rgba(76, 175, 80, 0.9)" },
-                  "100%": { boxShadow: "0 0 15px rgba(76, 175, 80, 0.5)" },
-                },
-              }}
-            />
-
-            <Typography
-              fontWeight="bold"
-              textAlign="center"
-              sx={{ mt: 1, fontSize: "clamp(0.9rem, 1.2vw, 1.1rem)" }}
-              noWrap
-            >
-              {activeSpeaker.name}
-            </Typography>
-            {activeSpeaker.title && (
-              <Typography
-                variant="body2"
-                sx={{ color: "grey.200", fontSize: "0.85rem" }}
-                textAlign="center"
-                noWrap
-              >
-                {activeSpeaker.title}
-              </Typography>
-            )}
-          </Stack>
-        )}
-
-        {/* Inactive Speakers Marquee */}
+        {/* 🎚 Bottom Slider Section */}
         <Box
           sx={{
-            flex: 1,
-            height: "100%",
-            overflow: "hidden",
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            width: "100%",
+            height: "10vh",
             display: "flex",
             alignItems: "center",
-            zIndex: 1,
-            minWidth: 0,
+            justifyContent: "center",
+            bgcolor: "rgba(255,255,255,0.15)",
+            backdropFilter: "blur(8px)",
+            px: 4,
+            zIndex: 1000,
           }}
         >
-          <Box
-            sx={{
-              display: "flex",
-              gap: 3,
-              whiteSpace: "nowrap",
-              willChange: "transform",
-              animation: "marqueeScroll 40s linear infinite",
+          <Slider
+            value={sliderValue}
+            onChange={(e, val) => {
+              setSliderValue(val);
+              if (val > 0) setOpenNumberModal(true);
+              else setOpenNumberModal(false);
             }}
-          >
-            {orderedSpeakers.concat(orderedSpeakers).map((spk, idx) => {
-              const isNext = nextSpeaker && spk._id === nextSpeaker._id;
-              return (
-                <SpeakerCard
-                  key={`${spk._id}-${idx}`}
-                  spk={spk}
-                  isNext={isNext}
-                  onClick={() => {
-                    playClickSound();
-                    setSelectedSpeaker(spk);
-                    setOpenAction(true);
-                  }}
-                />
-              );
-            })}
-          </Box>
+            min={0}
+            max={25800}
+            step={10}
+            sx={{
+              width: "80%",
+              color: "#FF9800",
+              "& .MuiSlider-thumb": {
+                height: 45,
+                width: 45,
+                backgroundColor: "#FF9800",
+                border: "3px solid white",
+                boxShadow: "0 0 10px rgba(0,0,0,0.4)",
+              },
+              "& .MuiSlider-rail": { opacity: 0.3 },
+              "& .MuiSlider-track": { height: 8 },
+            }}
+          />
         </Box>
 
-        <style jsx global>{`
-          @keyframes marqueeScroll {
-            0% {
-              transform: translateX(0%);
-            }
-            100% {
-              transform: translateX(-50%);
-            }
-          }
-        `}</style>
+        {/* ✨ Floating Number Popup (move OUTSIDE speaker box!) */}
+        {openNumberModal && (
+          <Box
+            sx={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              bgcolor: "#fff",
+              borderRadius: "32px",
+              boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
+              px: { xs: 4, md: 6 },
+              py: { xs: 3, md: 4 },
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              width: { xs: "80vw", md: "60vw" },
+              height: { xs: "35vh", md: "30vh" },
+              zIndex: 999999,
+              animation: "fadeInScale 0.3s ease-out forwards",
+              "@keyframes fadeInScale": {
+                "0%": {
+                  opacity: 0,
+                  transform: "translate(-50%, -50%) scale(0.9)",
+                },
+                "100%": {
+                  opacity: 1,
+                  transform: "translate(-50%, -50%) scale(1)",
+                },
+              },
+            }}
+          >
+            {/* Home Button */}
+            <IconButton
+              onClick={() => {
+                setOpenNumberModal(false);
+                setSliderValue(0);
+              }}
+              sx={{
+                position: "absolute",
+                top: 12,
+                right: 12,
+                color: "#333",
+                bgcolor: "rgba(255,255,255,0.9)",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+                "&:hover": { bgcolor: "#1976d2", color: "#fff" },
+              }}
+            >
+              <HomeIcon fontSize="large" />
+            </IconButton>
+
+            {/* Big Number */}
+            <Typography
+              variant="h2"
+              sx={{
+                fontWeight: 800,
+                fontSize: { xs: "12vw", md: "8vw" },
+                color: "#1976d2",
+                lineHeight: 1,
+                textShadow: "0px 4px 8px rgba(0,0,0,0.1)",
+                transition: "all 0.15s ease",
+              }}
+            >
+              {sliderValue.toLocaleString()}
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       {/* Action Popup */}
@@ -968,7 +843,6 @@ export default function HomePage() {
         onClose={() => {
           setOpenAction(false);
           resetToHome();
-          setSelectedSpeaker(null);
         }}
         maxWidth={false}
         PaperProps={{
@@ -1014,7 +888,6 @@ export default function HomePage() {
               }
 
               setOpenAction(false);
-              setSelectedSpeaker(null);
             }}
             sx={{
               position: "absolute",
@@ -1035,7 +908,6 @@ export default function HomePage() {
           aria-label="home"
           onClick={() => {
             setOpenAction(false);
-            setSelectedSpeaker(null);
             resetToHome();
           }}
           sx={{

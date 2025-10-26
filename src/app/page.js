@@ -740,6 +740,7 @@ export default function HomePage() {
               position: "absolute",
               bottom: 20,
               right: 20,
+              zIndex: 99999,
               bgcolor: "rgba(0,0,0,0.5)",
               color: "white",
               "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },

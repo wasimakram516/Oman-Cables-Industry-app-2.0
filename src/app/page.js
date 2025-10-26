@@ -253,16 +253,6 @@ export default function HomePage() {
             />
           )}
 
-          {/* Dark overlay */}
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              bgcolor: "rgba(0,0,0,0.3)",
-              zIndex: 1,
-            }}
-          />
-
           {/* Content */}
           <Box
             sx={{
@@ -773,6 +763,14 @@ export default function HomePage() {
                   } else {
                     setCurrentVideo(currentVideo || home?.video?.s3Url || null);
                     setVideoLoading(false);
+
+                    // For slider without video, open action immediately
+                    if (node.action?.type === "slider") {
+                      setSliderValue(node.action.slider?.min || 0);
+                      setCurrentNode(node);
+                      setOpenAction(true);
+                      return;
+                    }
                   }
 
                   setCurrentNode(node);

@@ -63,13 +63,13 @@ const nodeSchema = new mongoose.Schema(
       s3Key: {
         type: String,
         required: function () {
-          return !!this.parent;
+          return !!this.parent && this.action?.type !== "slider";
         },
       },
       s3Url: {
         type: String,
         required: function () {
-          return !!this.parent;
+          return !!this.parent && this.action?.type !== "slider";
         },
       },
       duration: { type: Number },

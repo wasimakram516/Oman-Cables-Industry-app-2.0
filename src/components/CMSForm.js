@@ -136,7 +136,7 @@ export default function CMSForm({
 
     // Child node validations
     if (selectedParent) {
-      if (!initialData && !video) {
+      if (!initialData && !video && actionType !== "slider") {
         showSnackbar("Video is required for child nodes", "error");
         return;
       }
@@ -211,21 +211,19 @@ export default function CMSForm({
         payload.video = { s3Key: key, s3Url: fileUrl };
       } else if (initialData?.video) {
         payload.video = initialData.video;
-      }
 
-      // 💬 Subtitle Upload (optional)
-      if (subtitleFile) {
-        const { uploadURL, key, fileUrl } = await getPresignedUrl(
-          subtitleFile,
-          "subtitles"
-        );
-        await uploadToS3(subtitleFile, uploadURL);
-
-        payload.video = payload.video || {};
-        payload.video.subtitle = { s3Key: key, s3Url: fileUrl };
-      } else if (existingSubtitle && !subtitleFile) {
-        payload.video = payload.video || {};
-        payload.video.subtitle = existingSubtitle;
+        // Handle subtitle for existing video
+        if (subtitleFile) {
+          const { uploadURL, key, fileUrl } = await getPresignedUrl(
+            subtitleFile,
+            "subtitles"
+          );
+          await uploadToS3(subtitleFile, uploadURL);
+          payload.video = { ...payload.video, subtitle: { s3Key: key, s3Url: fileUrl } };
+        }
+      } else if (actionType === "slider") {
+        // For slider without video, set video to null explicitly
+        payload.video = null;
       }
 
       // 🎬 Action (required for child nodes, optional for parent)
@@ -428,6 +426,7 @@ export default function CMSForm({
           startIcon={<UploadFileIcon />}
         >
           {initialData ? "Replace Video" : "Upload Video"}
+          {actionType === "slider" && " (Optional)"}
           <input
             type="file"
             hidden

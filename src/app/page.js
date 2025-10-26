@@ -882,13 +882,17 @@ export default function HomePage() {
 
               if (parentNode) {
                 setCurrentNode(parentNode);
-                setCurrentVideo(
-                  parentNode.video?.s3Url || home?.video?.s3Url || null
-                );
-                setVideoLoading(!!parentNode.video?.s3Url);
+
+                if (parentNode.video?.s3Url) {
+                  setCurrentVideo(parentNode.video.s3Url);
+                  setVideoLoading(true);
+                } else {
+                  setCurrentVideo(home?.video?.s3Url || null);
+                  setVideoLoading(false);
+                }
               } else {
-                // no parent found → must be root
                 resetToHome();
+                setVideoLoading(false);
               }
 
               setOpenAction(false);

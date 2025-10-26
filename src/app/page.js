@@ -69,10 +69,6 @@ export default function HomePage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!openAction) setVideoLoading(false);
-  }, [openAction]);
-
   // fetch home + tree + qr
   useEffect(() => {
     const fetchData = async () => {

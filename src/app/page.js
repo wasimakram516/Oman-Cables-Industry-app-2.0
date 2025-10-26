@@ -707,6 +707,10 @@ export default function HomePage() {
                 loop
                 muted
                 playsInline
+                controls={false}
+                disablePictureInPicture
+                controlsList="nodownload nofullscreen noremoteplayback"
+                poster="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
                 src={qrCode.s3Url}
                 style={{
                   width: `${qrCode.width}vw`,

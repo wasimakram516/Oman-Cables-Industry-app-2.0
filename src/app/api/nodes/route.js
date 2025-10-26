@@ -54,9 +54,9 @@ export async function POST(req) {
     // Case B: create node
     const { title, parent, order, video, action, x, y } = body;
 
-    if (parent && !video?.s3Url) {
+    if (parent && !video?.s3Url && action?.type !== "slider") {
       return NextResponse.json(
-        { error: "Video is required for child nodes" },
+        { error: "Video is required for  child nodes" },
         { status: 400 }
       );
     }
@@ -70,7 +70,6 @@ export async function POST(req) {
       x: x ?? 0,
       y: y ?? 0,
     });
-
     await node.save();
 
     if (parent) {

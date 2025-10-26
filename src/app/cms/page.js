@@ -29,6 +29,7 @@ import CMSForm from "@/components/CMSForm";
 import HomeVideoModal from "@/components/HomeVideoModal";
 import FullPageLoader from "@/components/FullPageLoader";
 import VVIPForm from "@/components/VVIPForm";
+import QRForm from "@/components/QRForm";
 
 export default function CMSPage() {
   const [tree, setTree] = useState([]);
@@ -47,7 +48,9 @@ export default function CMSPage() {
   const [vvips, setVvips] = useState([]);
   const [openVvipModal, setOpenVvipModal] = useState(false);
   const [editVvip, setEditVvip] = useState(null);
-
+  // qr state
+  const [qrCode, setQrCode] = useState(null);
+  const [openQrModal, setOpenQrModal] = useState(false);
   // delete state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [nodeToDelete, setNodeToDelete] = useState(null);
@@ -91,17 +94,30 @@ export default function CMSPage() {
     }
   };
 
+  const fetchQR = async () => {
+    try {
+      const res = await fetch("/api/qr");
+      if (!res.ok) throw new Error(res.statusText);
+      return await res.json();
+    } catch (err) {
+      console.error("❌ fetchQR error:", err);
+      return null;
+    }
+  };
+
   const refreshAll = async () => {
     setLoading(true);
     try {
-      const [treeData, homeData, vvipsData] = await Promise.all([
+      const [treeData, homeData, vvipsData, qrData] = await Promise.all([
         fetchTree(),
         fetchHomeVideo(),
         fetchVvips(),
+        fetchQR(),
       ]);
       setTree(treeData || []);
       setHomeVideo(homeData || null);
       setVvips(vvipsData || []);
+      setQrCode(qrData || null);
     } finally {
       setLoading(false);
     }
@@ -180,6 +196,14 @@ export default function CMSPage() {
         </Button>
         <Button
           variant="contained"
+          color="success"
+          startIcon={<AddIcon />}
+          onClick={() => setOpenQrModal(true)}
+        >
+          {qrCode ? "Edit QR Code" : "Add QR Code"}
+        </Button>
+        <Button
+          variant="contained"
           color="info"
           startIcon={<AddIcon />}
           onClick={() => {
@@ -216,7 +240,75 @@ export default function CMSPage() {
             </Box>
           )}
 
+          {/* QR Code */}
+          {qrCode?.s3Url && (
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h5" gutterBottom>
+                QR Code
+              </Typography>
+
+              <Paper
+                sx={{
+                  p: 2,
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  borderRadius: 2,
+                  backgroundColor: "#fff",
+                }}
+              >
+                {/* Left: QR Image */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar
+                    variant="rounded"
+                    src={qrCode.s3Url}
+                    alt="QR Code"
+                    sx={{
+                      width: 120,
+                      height: 120,
+                      border: "1px solid #ccc",
+                      bgcolor: "#fafafa",
+                    }}
+                  />
+                  <Box>
+                    <Typography variant="body1" fontWeight={600}>
+                      Uploaded QR
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ wordBreak: "break-all", maxWidth: 300 }}
+                    >
+                      {qrCode.s3Key}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Right: Config Details */}
+                <Box sx={{ textAlign: "right" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>X:</strong> {qrCode.x || 0}%
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Y:</strong> {qrCode.y || 0}%
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Width:</strong> {qrCode.width || 0}%
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Height:</strong> {qrCode.height || 0}%
+                  </Typography>
+                </Box>
+              </Paper>
+            </Box>
+          )}
+
           {/* Nodes */}
+          <Typography variant="h5" gutterBottom>
+            Nodes
+          </Typography>
           <NodeAccordionTree
             nodes={tree}
             onEdit={(node) => {
@@ -394,6 +486,24 @@ export default function CMSPage() {
               onClose={() => setOpenVvipModal(false)}
               onCreated={refreshAll}
               initialData={editVvip}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {openQrModal && (
+        <Dialog
+          open={openQrModal}
+          onClose={() => setOpenQrModal(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>{qrCode ? "Edit QR Code" : "Add QR Code"}</DialogTitle>
+          <DialogContent dividers>
+            <QRForm
+              onClose={() => setOpenQrModal(false)}
+              onCreated={refreshAll}
+              initialData={qrCode}
             />
           </DialogContent>
         </Dialog>

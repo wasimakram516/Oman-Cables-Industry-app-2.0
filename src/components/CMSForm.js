@@ -48,6 +48,16 @@ export default function CMSForm({
   const [actionUrl, setActionUrl] = useState(
     initialData?.action?.externalUrl || ""
   );
+  const [sliderMin, setSliderMin] = useState(
+    initialData?.action?.slider?.min ?? 0
+  );
+  const [sliderMax, setSliderMax] = useState(
+    initialData?.action?.slider?.max ?? 100
+  );
+  const [sliderStep, setSliderStep] = useState(
+    initialData?.action?.slider?.step ?? 1
+  );
+  const [sliderBgFile, setSliderBgFile] = useState(null);
   const [actionSubtitleFile, setActionSubtitleFile] = useState(null);
   const [existingActionSubtitle, setExistingActionSubtitle] = useState(
     initialData?.action?.subtitle || null
@@ -158,6 +168,16 @@ export default function CMSForm({
         showSnackbar("Please enter a valid iFrame URL", "error");
         return;
       }
+      if (actionType === "slider") {
+        if (!sliderBgFile && !initialData?.action?.slider?.background?.s3Url) {
+          showSnackbar("Please upload background for slider", "error");
+          return;
+        }
+        if (sliderMin >= sliderMax) {
+          showSnackbar("Slider min must be less than max", "error");
+          return;
+        }
+      }
     }
 
     if (isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)) {
@@ -223,6 +243,30 @@ export default function CMSForm({
           }
           actionPayload.type = "slideshow";
           actionPayload.images = [...existingImages, ...uploadedImages];
+        } else if (actionType === "slider") {
+          actionPayload.type = "slider";
+          actionPayload.slider = {
+            min: Number(sliderMin),
+            max: Number(sliderMax),
+            step: Number(sliderStep),
+          };
+
+          if (sliderBgFile) {
+            const bgType = sliderBgFile.type.startsWith("video/") ? "video" : "image";
+            const folder = bgType === "video" ? "videos" : "images";
+            const { uploadURL, key, fileUrl } = await getPresignedUrl(
+              sliderBgFile,
+              folder
+            );
+            await uploadToS3(sliderBgFile, uploadURL);
+            actionPayload.slider.background = {
+              type: bgType,
+              s3Key: key,
+              s3Url: fileUrl,
+            };
+          } else if (initialData?.action?.slider?.background) {
+            actionPayload.slider.background = initialData.action.slider.background;
+          }
         } else if (actionFile && actionType !== "iframe") {
           const folder = actionType === "pdf" ? "pdfs" : "images";
           const { uploadURL, key, fileUrl } = await getPresignedUrl(
@@ -238,8 +282,8 @@ export default function CMSForm({
             actionType === "pdf"
               ? "pdfs"
               : actionType === "video"
-              ? "videos"
-              : "images";
+                ? "videos"
+                : "images";
           const { uploadURL, key, fileUrl } = await getPresignedUrl(
             actionFile,
             folder
@@ -429,6 +473,7 @@ export default function CMSForm({
             setActionType(val);
             setActionFile(null);
             setSlideshowFiles([]);
+            setSliderBgFile(null);
             if (!val) {
               setPopupFile(null);
               setPopupX(50);
@@ -443,9 +488,60 @@ export default function CMSForm({
           <MenuItem value="video">Video</MenuItem>
           <MenuItem value="iframe">iFrame</MenuItem>
           <MenuItem value="slideshow">Slideshow</MenuItem>
+          <MenuItem value="slider">Slider</MenuItem>
         </TextField>
 
-        {actionType === "iframe" ? (
+        {actionType === "slider" ? (
+          <>
+            <Button
+              component="label"
+              variant="outlined"
+              startIcon={<UploadFileIcon />}
+            >
+              Upload Background
+              <input
+                type="file"
+                hidden
+                accept="image/*,video/*"
+                onChange={(e) => setSliderBgFile(e.target.files[0])}
+              />
+            </Button>
+            {sliderBgFile && (
+              <Typography>
+                📎 {sliderBgFile.name} ({sliderBgFile.type.startsWith("video/") ? "Video" : "Image"})
+              </Typography>
+            )}
+            {initialData?.action?.slider?.background?.s3Key && !sliderBgFile && (
+              <Typography color="textSecondary">
+                Existing Background: {initialData.action.slider.background.s3Key} ({initialData.action.slider.background.type})
+              </Typography>
+            )}
+
+            <Stack direction="row" spacing={2}>
+              <TextField
+                label="Min Value"
+                type="number"
+                value={sliderMin}
+                onChange={(e) => setSliderMin(e.target.value)}
+                fullWidth
+              />
+              <TextField
+                label="Max Value"
+                type="number"
+                value={sliderMax}
+                onChange={(e) => setSliderMax(e.target.value)}
+                fullWidth
+              />
+              <TextField
+                label="Step"
+                type="number"
+                value={sliderStep}
+                onChange={(e) => setSliderStep(e.target.value)}
+                fullWidth
+              />
+            </Stack>
+          </>
+        ) : actionType === "iframe" ? (
           <TextField
             label="iFrame URL"
             value={actionUrl}

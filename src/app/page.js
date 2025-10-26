@@ -59,9 +59,9 @@ export default function HomePage() {
   const [slideIndex, setSlideIndex] = useState(0);
   const [direction, setDirection] = useState("next");
   const [vvip, setVvip] = useState(null);
+  const [qrCode, setQrCode] = useState(null);
 
   const [sliderValue, setSliderValue] = useState(0);
-  const [openNumberModal, setOpenNumberModal] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -69,18 +69,21 @@ export default function HomePage() {
     };
   }, []);
 
-  // fetch home + tree
+  // fetch home + tree + qr
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [homeRes, treeRes] = await Promise.all([
+        const [homeRes, treeRes, qrRes] = await Promise.all([
           fetch("/api/home"),
           fetch("/api/nodes/tree"),
+          fetch("/api/qr"),
         ]);
         const homeData = await homeRes.json();
         const treeData = await treeRes.json();
+        const qrData = await qrRes.json();
         setHome(homeData);
         setTree(treeData);
+        setQrCode(qrData);
         setCurrentVideo(homeData?.video?.s3Url || null);
       } catch (err) {
         console.error("❌ Error fetching home data:", err);
@@ -191,8 +194,143 @@ export default function HomePage() {
 
   const renderActionContent = () => {
     if (!currentNode?.action) return null;
-    const { type, s3Url, externalUrl, images = [] } = currentNode.action;
+    const {
+      type,
+      s3Url,
+      externalUrl,
+      images = [],
+      slider,
+    } = currentNode.action;
     const url = s3Url || externalUrl;
+
+    if (type === "slider" && slider) {
+      const bgUrl = slider.background?.s3Url;
+      const isVideo = slider.background?.type === "video";
+
+      return (
+        <Box
+          sx={{
+            width: "100%",
+            height: "100%",
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden",
+          }}
+        >
+          {/* Background Image/Video */}
+          {isVideo ? (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              src={bgUrl}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                zIndex: 0,
+              }}
+            />
+          ) : (
+            <Box
+              component="img"
+              src={bgUrl}
+              alt="Slider Background"
+              sx={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                zIndex: 0,
+              }}
+            />
+          )}
+
+          {/* Dark overlay */}
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              bgcolor: "rgba(0,0,0,0.3)",
+              zIndex: 1,
+            }}
+          />
+
+          {/* Content */}
+          <Box
+            sx={{
+              position: "relative",
+              zIndex: 2,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              height: "100%",
+              gap: 4,
+            }}
+          >
+            {/* Big Number */}
+            <Typography
+              variant="h1"
+              sx={{
+                fontWeight: 800,
+                fontSize: "clamp(4rem, 15vw, 12rem)",
+                color: "#fff",
+                textShadow: "0px 6px 12px rgba(0,0,0,0.8)",
+                transition: "all 0.15s ease",
+              }}
+            >
+              {sliderValue.toLocaleString()}
+            </Typography>
+
+            {/* Slider */}
+            <Box
+              sx={{
+                width: "80%",
+                maxWidth: "800px",
+                px: 4,
+                mt: 4,
+              }}
+            >
+              <Slider
+                value={sliderValue}
+                onChange={(e, val) => setSliderValue(val)}
+                min={slider.min}
+                max={slider.max}
+                step={slider.step}
+                sx={{
+                  color: "#FF9800",
+                  "& .MuiSlider-thumb": {
+                    height: 50,
+                    width: 50,
+                    backgroundColor: "#FF9800",
+                    border: "4px solid white",
+                    boxShadow: "0 0 15px rgba(0,0,0,0.5)",
+                  },
+                  "& .MuiSlider-rail": {
+                    opacity: 0.4,
+                    backgroundColor: "#fff",
+                    height: 10,
+                  },
+                  "& .MuiSlider-track": {
+                    height: 10,
+                    border: "none",
+                  },
+                }}
+              />
+            </Box>
+          </Box>
+        </Box>
+      );
+    }
 
     if (type === "slideshow" && images.length > 0) {
       return (
@@ -415,7 +553,7 @@ export default function HomePage() {
       {/* Top 90% */}
       <Box
         sx={{
-          flex: 9,
+          flex: 1,
           position: "relative",
           bgcolor: "white",
           overflow: "hidden",
@@ -477,6 +615,9 @@ export default function HomePage() {
                   if (currentNode?.action) {
                     const nodeForAction = currentNode;
                     actionTimer.current = setTimeout(() => {
+                      if (nodeForAction.action.type === "slider") {
+                        setSliderValue(nodeForAction.action.slider?.min || 0);
+                      }
                       setOpenAction(true);
                       setCurrentNode(nodeForAction);
                     }, 5000);
@@ -556,28 +697,45 @@ export default function HomePage() {
           />
         </Box>
 
-        {/* OCI QR*/}
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: "8vh",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 50,
-          }}
-        >
-          <img
-            src="/OCI QR.png"
-            alt="OCI QR Code"
-            style={{
-              width: "100vw",
-              objectFit: "cover",
-              borderRadius: 10,
-              filter: "drop-shadow(0px 4px 8px rgba(0,0,0,0.6))",
-              maxHeight: "10vh",
+        {/* Dynamic QR Code */}
+        {qrCode?.s3Url && (
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: `${qrCode.y}%`,
+              left: `${qrCode.x}%`,
+              transform: "translate(-50%, -50%)",
+              zIndex: 50,
             }}
-          />
-        </Box>
+          >
+            {qrCode.s3Url.includes(".mp4") || qrCode.s3Url.includes(".webm") ? (
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                src={qrCode.s3Url}
+                style={{
+                  width: `${qrCode.width}vw`,
+                  height: `${qrCode.height}vh`,
+                  objectFit: "cover",
+                  filter: "drop-shadow(0px 4px 8px rgba(0,0,0,0.6))",
+                }}
+              />
+            ) : (
+              <img
+                src={qrCode.s3Url}
+                alt="QR Code"
+                style={{
+                  width: `${qrCode.width}vw`,
+                  height: `${qrCode.height}vh`,
+                  objectFit: "cover",
+                  filter: "drop-shadow(0px 4px 8px rgba(0,0,0,0.6))",
+                }}
+              />
+            )}
+          </Box>
+        )}
 
         {/* Show mute/unmute only on home */}
         {!vvip && currentNode === null && (
@@ -683,158 +841,6 @@ export default function HomePage() {
               </Box>
             )
           )}
-      </Box>
-
-      {/* Bottom 20% Speakers */}
-      <Box
-        sx={{
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          px: 2,
-          overflow: "hidden",
-          color: "#fff",
-          position: "relative",
-        }}
-      >
-        {/* Background video */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          src="/speakersBg.mp4"
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            zIndex: 0,
-          }}
-        />
-
-        {/* Dark overlay to improve contrast */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            bgcolor: "rgba(0,0,0,0.4)",
-            zIndex: 0,
-          }}
-        />
-
-        {/* 🎚 Bottom Slider Section */}
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            width: "100%",
-            height: "10vh",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            bgcolor: "rgba(255,255,255,0.15)",
-            backdropFilter: "blur(8px)",
-            px: 4,
-            zIndex: 1000,
-          }}
-        >
-          <Slider
-            value={sliderValue}
-            onChange={(e, val) => {
-              setSliderValue(val);
-              if (val > 0) setOpenNumberModal(true);
-              else setOpenNumberModal(false);
-            }}
-            min={0}
-            max={25800}
-            step={10}
-            sx={{
-              width: "80%",
-              color: "#FF9800",
-              "& .MuiSlider-thumb": {
-                height: 45,
-                width: 45,
-                backgroundColor: "#FF9800",
-                border: "3px solid white",
-                boxShadow: "0 0 10px rgba(0,0,0,0.4)",
-              },
-              "& .MuiSlider-rail": { opacity: 0.3 },
-              "& .MuiSlider-track": { height: 8 },
-            }}
-          />
-        </Box>
-
-        {/* ✨ Floating Number Popup (move OUTSIDE speaker box!) */}
-        {openNumberModal && (
-          <Box
-            sx={{
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              bgcolor: "#fff",
-              borderRadius: "32px",
-              boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
-              px: { xs: 4, md: 6 },
-              py: { xs: 3, md: 4 },
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              width: { xs: "80vw", md: "60vw" },
-              height: { xs: "35vh", md: "30vh" },
-              zIndex: 999999,
-              animation: "fadeInScale 0.3s ease-out forwards",
-              "@keyframes fadeInScale": {
-                "0%": {
-                  opacity: 0,
-                  transform: "translate(-50%, -50%) scale(0.9)",
-                },
-                "100%": {
-                  opacity: 1,
-                  transform: "translate(-50%, -50%) scale(1)",
-                },
-              },
-            }}
-          >
-            {/* Home Button */}
-            <IconButton
-              onClick={() => {
-                setOpenNumberModal(false);
-                setSliderValue(0);
-              }}
-              sx={{
-                position: "absolute",
-                top: 12,
-                right: 12,
-                color: "#333",
-                bgcolor: "rgba(255,255,255,0.9)",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-                "&:hover": { bgcolor: "#1976d2", color: "#fff" },
-              }}
-            >
-              <HomeIcon fontSize="large" />
-            </IconButton>
-
-            {/* Big Number */}
-            <Typography
-              variant="h2"
-              sx={{
-                fontWeight: 800,
-                fontSize: { xs: "12vw", md: "8vw" },
-                color: "#1976d2",
-                lineHeight: 1,
-                textShadow: "0px 4px 8px rgba(0,0,0,0.1)",
-                transition: "all 0.15s ease",
-              }}
-            >
-              {sliderValue.toLocaleString()}
-            </Typography>
-          </Box>
-        )}
       </Box>
 
       {/* Action Popup */}

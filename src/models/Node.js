@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const actionSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ["pdf", "image", "video", "iframe", "slideshow"],
+    enum: ["pdf", "image", "video", "iframe", "slideshow", "slider"],
     required: function () {
       return !!this.parent; // only required if this node has a parent
     },
@@ -34,6 +34,18 @@ const actionSchema = new mongoose.Schema({
   // Container sizing for frontend
   width: { type: Number, default: 85 },  // (% of viewport width)
   height: { type: Number, default: 95 }, // (% of viewport height)
+
+  // Slider configuration
+  slider: {
+    min: { type: Number, default: 0 },
+    max: { type: Number, default: 100 },
+    step: { type: Number, default: 1 },
+    background: {
+      type: { type: String, enum: ["image", "video"] },
+      s3Key: { type: String },
+      s3Url: { type: String },
+    },
+  },
 });
 
 const nodeSchema = new mongoose.Schema(

@@ -645,7 +645,7 @@ export default function HomePage() {
               </video>
             )}
 
-            {videoLoading && currentVideo && currentVideo.includes("http") && (
+            {currentVideo && videoLoading && (
               <Box
                 sx={{
                   position: "absolute",
@@ -654,7 +654,6 @@ export default function HomePage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  bgcolor: "rgba(255,255,255,0.05)",
                 }}
               >
                 <CircularProgress size={60} thickness={4} color="secondary" />
@@ -763,15 +762,10 @@ export default function HomePage() {
                     setCurrentVideo(node.video.s3Url);
                     setVideoLoading(true);
                   } else {
-                    // No node video → stop spinner right now
-                    setCurrentVideo(home?.video?.s3Url || null);
+                    setCurrentVideo(currentVideo || home?.video?.s3Url || null);
                     setVideoLoading(false);
 
-                    // Clean up any old video state
-                    if (videoRef.current) {
-                      videoRef.current.pause();
-                    }
-
+                    // For slider without video, open action immediately
                     if (node.action?.type === "slider") {
                       setSliderValue(node.action.slider?.min || 0);
                       setCurrentNode(node);
@@ -890,22 +884,25 @@ export default function HomePage() {
 
               if (parentNode) {
                 setCurrentNode(parentNode);
+
                 if (parentNode.video?.s3Url) {
+                  // 🎥 Parent has video
                   setCurrentVideo(parentNode.video.s3Url);
                   setVideoLoading(true);
                 } else {
+                  // 🖼 No parent video (like slider nodes)
                   setCurrentVideo(home?.video?.s3Url || null);
                   setVideoLoading(false);
+
+                  // 🔧 Force-disable spinner in case state lags
+                  setTimeout(() => setVideoLoading(false), 300);
                 }
               } else {
+                // Root node or invalid parent
                 resetToHome();
                 setVideoLoading(false);
+                setTimeout(() => setVideoLoading(false), 300);
               }
-
-              // 🧹 Force-clear any stale spinner
-              setTimeout(() => setVideoLoading(false), 200);
-              if (videoRef.current) videoRef.current.pause();
-              setOpenAction(false);
 
               setOpenAction(false);
             }}

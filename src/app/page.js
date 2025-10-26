@@ -886,22 +886,24 @@ export default function HomePage() {
                 setCurrentNode(parentNode);
 
                 if (parentNode.video?.s3Url) {
-                  // 🎥 Parent has video
-                  setCurrentVideo(parentNode.video.s3Url);
-                  setVideoLoading(true);
+                  // Parent has its own video
+                  // Check if it's already the current video — if yes, don't reload
+                  if (currentVideo !== parentNode.video.s3Url) {
+                    setCurrentVideo(parentNode.video.s3Url);
+                    setVideoLoading(true);
+                  } else {
+                    // Same video still playing — don't touch loading or video state
+                    setVideoLoading(false);
+                  }
                 } else {
-                  // 🖼 No parent video (like slider nodes)
+                  // Parent has no video (fallback to home)
                   setCurrentVideo(home?.video?.s3Url || null);
                   setVideoLoading(false);
-
-                  // 🔧 Force-disable spinner in case state lags
-                  setTimeout(() => setVideoLoading(false), 300);
                 }
               } else {
-                // Root node or invalid parent
+                // No parent found → reset to home
                 resetToHome();
                 setVideoLoading(false);
-                setTimeout(() => setVideoLoading(false), 300);
               }
 
               setOpenAction(false);

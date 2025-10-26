@@ -645,7 +645,7 @@ export default function HomePage() {
               </video>
             )}
 
-            {currentVideo && videoLoading && (
+            {videoLoading && currentVideo && currentVideo.includes("http") && (
               <Box
                 sx={{
                   position: "absolute",
@@ -654,6 +654,7 @@ export default function HomePage() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  bgcolor: "rgba(255,255,255,0.05)",
                 }}
               >
                 <CircularProgress size={60} thickness={4} color="secondary" />
@@ -874,7 +875,8 @@ export default function HomePage() {
               playClickSound();
 
               if (!currentNode) {
-                resetToHome(); // already at root
+                resetToHome();
+                setVideoLoading(false);
                 return;
               }
 
@@ -885,15 +887,22 @@ export default function HomePage() {
                 setCurrentNode(parentNode);
 
                 if (parentNode.video?.s3Url) {
+                  // 🎥 Parent has video
                   setCurrentVideo(parentNode.video.s3Url);
                   setVideoLoading(true);
                 } else {
+                  // 🖼 No parent video (like slider nodes)
                   setCurrentVideo(home?.video?.s3Url || null);
                   setVideoLoading(false);
+
+                  // 🔧 Force-disable spinner in case state lags
+                  setTimeout(() => setVideoLoading(false), 300);
                 }
               } else {
+                // Root node or invalid parent
                 resetToHome();
                 setVideoLoading(false);
+                setTimeout(() => setVideoLoading(false), 300);
               }
 
               setOpenAction(false);

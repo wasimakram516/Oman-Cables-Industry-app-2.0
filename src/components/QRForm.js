@@ -18,8 +18,8 @@ export default function QRForm({ onClose, onCreated, initialData }) {
   const [file, setFile] = useState(null);
   const [x, setX] = useState(initialData?.x ?? 50);
   const [y, setY] = useState(initialData?.y ?? 50);
-  const [width, setWidth] = useState(initialData?.width ?? 20);
-  const [height, setHeight] = useState(initialData?.height ?? 20);
+  const [width, setWidth] = useState(initialData?.width ?? 100);
+  const [height, setHeight] = useState(initialData?.height ?? 10);
   const [progress, setProgress] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({
@@ -148,7 +148,7 @@ export default function QRForm({ onClose, onCreated, initialData }) {
             onChange={(e) => setX(e.target.value)}
           />
           <TextField
-            label="Y (%)"
+            label="Y (%) from bottom"
             type="number"
             value={y}
             onChange={(e) => setY(e.target.value)}
@@ -157,13 +157,13 @@ export default function QRForm({ onClose, onCreated, initialData }) {
 
         <Stack direction="row" spacing={2}>
           <TextField
-            label="Width"
+            label="Width (%)"
             type="number"
             value={width}
             onChange={(e) => setWidth(e.target.value)}
           />
           <TextField
-            label="Height"
+            label="Height (%)"
             type="number"
             value={height}
             onChange={(e) => setHeight(e.target.value)}

@@ -166,7 +166,7 @@ export default function HomePage() {
   const playClickSound = () => {
     if (buttonSoundRef.current) {
       buttonSoundRef.current.currentTime = 0;
-      buttonSoundRef.current.play().catch(() => { });
+      buttonSoundRef.current.play().catch(() => {});
     }
   };
 
@@ -194,7 +194,13 @@ export default function HomePage() {
 
   const renderActionContent = () => {
     if (!currentNode?.action) return null;
-    const { type, s3Url, externalUrl, images = [], slider } = currentNode.action;
+    const {
+      type,
+      s3Url,
+      externalUrl,
+      images = [],
+      slider,
+    } = currentNode.action;
     const url = s3Url || externalUrl;
 
     if (type === "slider" && slider) {
@@ -291,6 +297,7 @@ export default function HomePage() {
                 width: "80%",
                 maxWidth: "800px",
                 px: 4,
+                mt: 4,
               }}
             >
               <Slider
@@ -695,13 +702,13 @@ export default function HomePage() {
           <Box
             sx={{
               position: "absolute",
-              top: `${qrCode.y}%`,
+              bottom: `${qrCode.y}%`,
               left: `${qrCode.x}%`,
               transform: "translate(-50%, -50%)",
               zIndex: 50,
             }}
           >
-            {qrCode.s3Url.includes('.mp4') || qrCode.s3Url.includes('.webm') ? (
+            {qrCode.s3Url.includes(".mp4") || qrCode.s3Url.includes(".webm") ? (
               <video
                 autoPlay
                 loop
@@ -711,7 +718,7 @@ export default function HomePage() {
                 style={{
                   width: `${qrCode.width}vw`,
                   height: `${qrCode.height}vh`,
-                  objectFit: "contain",
+                  objectFit: "cover",
                   filter: "drop-shadow(0px 4px 8px rgba(0,0,0,0.6))",
                 }}
               />
@@ -722,7 +729,7 @@ export default function HomePage() {
                 style={{
                   width: `${qrCode.width}vw`,
                   height: `${qrCode.height}vh`,
-                  objectFit: "contain",
+                  objectFit: "cover",
                   filter: "drop-shadow(0px 4px 8px rgba(0,0,0,0.6))",
                 }}
               />
@@ -835,7 +842,6 @@ export default function HomePage() {
             )
           )}
       </Box>
-
 
       {/* Action Popup */}
       <Dialog

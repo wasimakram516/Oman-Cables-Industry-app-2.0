@@ -196,6 +196,14 @@ export default function CMSPage() {
         </Button>
         <Button
           variant="contained"
+          color="success"
+          startIcon={<AddIcon />}
+          onClick={() => setOpenQrModal(true)}
+        >
+          {qrCode ? "Edit QR Code" : "Add QR Code"}
+        </Button>
+        <Button
+          variant="contained"
           color="info"
           startIcon={<AddIcon />}
           onClick={() => {
@@ -204,14 +212,6 @@ export default function CMSPage() {
           }}
         >
           Add VVIP
-        </Button>
-        <Button
-          variant="contained"
-          color="success"
-          startIcon={<AddIcon />}
-          onClick={() => setOpenQrModal(true)}
-        >
-          {qrCode ? "Edit QR Code" : "Add QR Code"}
         </Button>
         <Button
           variant="outlined"
@@ -240,7 +240,75 @@ export default function CMSPage() {
             </Box>
           )}
 
+          {/* QR Code */}
+          {qrCode?.s3Url && (
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h5" gutterBottom>
+                QR Code
+              </Typography>
+
+              <Paper
+                sx={{
+                  p: 2,
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  borderRadius: 2,
+                  backgroundColor: "#fff",
+                }}
+              >
+                {/* Left: QR Image */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Avatar
+                    variant="rounded"
+                    src={qrCode.s3Url}
+                    alt="QR Code"
+                    sx={{
+                      width: 120,
+                      height: 120,
+                      border: "1px solid #ccc",
+                      bgcolor: "#fafafa",
+                    }}
+                  />
+                  <Box>
+                    <Typography variant="body1" fontWeight={600}>
+                      Uploaded QR
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ wordBreak: "break-all", maxWidth: 300 }}
+                    >
+                      {qrCode.s3Key}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Right: Config Details */}
+                <Box sx={{ textAlign: "right" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>X:</strong> {qrCode.x || 0}%
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Y:</strong> {qrCode.y || 0}%
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Width:</strong> {qrCode.width || 0}%
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Height:</strong> {qrCode.height || 0}%
+                  </Typography>
+                </Box>
+              </Paper>
+            </Box>
+          )}
+
           {/* Nodes */}
+          <Typography variant="h5" gutterBottom>
+            Nodes
+          </Typography>
           <NodeAccordionTree
             nodes={tree}
             onEdit={(node) => {
@@ -430,9 +498,7 @@ export default function CMSPage() {
           maxWidth="sm"
           fullWidth
         >
-          <DialogTitle>
-            {qrCode ? "Edit QR Code" : "Add QR Code"}
-          </DialogTitle>
+          <DialogTitle>{qrCode ? "Edit QR Code" : "Add QR Code"}</DialogTitle>
           <DialogContent dividers>
             <QRForm
               onClose={() => setOpenQrModal(false)}

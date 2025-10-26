@@ -69,6 +69,10 @@ export default function HomePage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!openAction) setVideoLoading(false);
+  }, [openAction]);
+
   // fetch home + tree + qr
   useEffect(() => {
     const fetchData = async () => {
@@ -763,10 +767,15 @@ export default function HomePage() {
                     setCurrentVideo(node.video.s3Url);
                     setVideoLoading(true);
                   } else {
-                    setCurrentVideo(currentVideo || home?.video?.s3Url || null);
+                    // No node video → stop spinner right now
+                    setCurrentVideo(home?.video?.s3Url || null);
                     setVideoLoading(false);
 
-                    // For slider without video, open action immediately
+                    // Clean up any old video state
+                    if (videoRef.current) {
+                      videoRef.current.pause();
+                    }
+
                     if (node.action?.type === "slider") {
                       setSliderValue(node.action.slider?.min || 0);
                       setCurrentNode(node);
@@ -885,25 +894,22 @@ export default function HomePage() {
 
               if (parentNode) {
                 setCurrentNode(parentNode);
-
                 if (parentNode.video?.s3Url) {
-                  // 🎥 Parent has video
                   setCurrentVideo(parentNode.video.s3Url);
                   setVideoLoading(true);
                 } else {
-                  // 🖼 No parent video (like slider nodes)
                   setCurrentVideo(home?.video?.s3Url || null);
                   setVideoLoading(false);
-
-                  // 🔧 Force-disable spinner in case state lags
-                  setTimeout(() => setVideoLoading(false), 300);
                 }
               } else {
-                // Root node or invalid parent
                 resetToHome();
                 setVideoLoading(false);
-                setTimeout(() => setVideoLoading(false), 300);
               }
+
+              // 🧹 Force-clear any stale spinner
+              setTimeout(() => setVideoLoading(false), 200);
+              if (videoRef.current) videoRef.current.pause();
+              setOpenAction(false);
 
               setOpenAction(false);
             }}

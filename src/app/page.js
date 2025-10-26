@@ -228,6 +228,9 @@ export default function HomePage() {
               muted
               playsInline
               src={bgUrl}
+              disablePictureInPicture
+              controlsList="nodownload nofullscreen noremoteplayback"
+              poster="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
               style={{
                 position: "absolute",
                 inset: 0,
@@ -455,7 +458,7 @@ export default function HomePage() {
             autoPlay
             playsInline
             loop={false}
-            controls
+            controls={false}
             disablePictureInPicture
             controlsList="nodownload nofullscreen noremoteplayback"
             poster="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="

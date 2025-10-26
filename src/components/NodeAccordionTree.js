@@ -135,9 +135,6 @@ export default function NodeAccordionTree({
 
   return (
     <Box>
-      <Typography variant="h5" gutterBottom>
-        Nodes
-      </Typography>
       {nodes.map((n) => (
         <NodeAccordionItem
           key={n._id}
